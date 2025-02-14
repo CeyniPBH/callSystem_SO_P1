@@ -1,0 +1,7 @@
+Linux, often associated with being a complex operating system primarily used by developers, may not necessarily fit that description entirely.
+While it can initially appear challenging for beginners, once you immerse yourself in the Linux world, you may find it difficult to return to yourprevious Windows systems.
+ The power of Linux commands in controlling your PC, coupled with their clean user interface, can make it hard to switch backto older operating systems. 
+ If you’re a developer, you can likely relate to the advantages and appeal of Linux.To support developers and beginners alike, we have created a comprehensive Linux/Unix command line cheat sheet.
+This cheat sheet covers all the basicand advanced commands, including file and directory commands, file permission commands, file compression and archiving, process management, systeminformation, networking, and more with proper examples and descriptions.
+In addition to that we provide all the most used Linux Shortcut which includesBash shortcuts, Nano shortcuts, VI & Vim Shortcuts Commands. It provides a solid foundation on Linux OS commands, as well as insights into practicalapplications.
+By the end of this cheat sheet, you will have a basic understanding of Linux/Unix Commands and how it makes development easy for developers.
