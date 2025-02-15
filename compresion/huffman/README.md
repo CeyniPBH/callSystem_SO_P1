@@ -1,0 +1,2 @@
+#Algoritmo de Huffman.
+##Estructura:
