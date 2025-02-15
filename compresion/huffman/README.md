@@ -1,2 +1,3 @@
-#Algoritmo de Huffman.
-##Estructura:
+# Algoritmo de Huffman
+
+## Estructura:
