@@ -8,5 +8,7 @@ Integrantes.
 
 
 Trabajando:
-[Compresión] 
-[Encriptación]
+
+- [Compresión](https://github.com/CeyniPBH/callSystem_SO_P1/tree/main/compresion)
+
+- [Encriptación](https://github.com/CeyniPBH/callSystem_SO_P1/tree/main/Encriptacion)
