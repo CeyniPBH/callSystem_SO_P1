@@ -104,7 +104,8 @@ void compress(const std::string& filename) {
     generarCodigos(raiz, "", codigos);
     
     // Crear el archivo comprimido
-    std::ofstream archivoComprimido(filename + ".huff", std::ios::binary); //.huf es la extensión del archivo comprimido
+    std::string nombreBase = filename.substr(0, filename.find_last_of(".")); 
+    std::ofstream archivoComprimido(nombreBase + ".huff", std::ios::binary);
     if (!archivoComprimido.is_open()) {
         perror("Error al crear el archivo comprimido");
         return;
@@ -153,7 +154,7 @@ void compress(const std::string& filename) {
     close(fd); // Cierra el archivo original
     archivoComprimido.close(); // Cierra el archivo comprimido
 
-    std::cout << "Archivo comprimido con éxito como: " << filename + ".huff" << std::endl;
+    std::cout << "Archivo comprimido con éxito como: " << nombreBase + ".huff" << std::endl;
 
 
 }
