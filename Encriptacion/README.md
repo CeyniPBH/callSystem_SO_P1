@@ -46,21 +46,21 @@ Ejecuta el programa con las siguientes opciones:
 ```
 Ejemplo:
 ```bash
-./Parcial1 -e documento.txt
+./Parcial1 -e archivo.txt
 ```
-Después de ejecutar este comando, `documento.txt` quedará encriptado.
+Después de ejecutar este comando, `archivo.txt` quedará encriptado.
 
 ### Desencriptar un archivo
 ```bash
-./file_encryptor -d <archivo>
+./Parcial1 -d <archivo>
 ```
 Ejemplo:
 ```bash
-./file_encryptor -d documento.txt
+./Parcial1 -d archivo.txt
 ```
-Después de ejecutar este comando, `documento.txt` volverá a su estado original.
+Después de ejecutar este comando, `archivo.txt` volverá a su estado original.
 
-## 🛠️ Detalles Técnicos
+## Detalles Técnicos
 
 - **Llamadas al sistema utilizadas:**
   - `open()`, `read()`, `write()`, `close()`: Para manipular archivos.
@@ -70,6 +70,7 @@ Después de ejecutar este comando, `documento.txt` volverá a su estado original
 
 ## Notas Importantes
 
+- **Solo funciona para documentos de texto(.txt)** 
 - Este cifrado **no es seguro para datos sensibles**, ya que XOR con clave fija es fácilmente reversible.
 - **No hay recuperación de clave**: Si pierdes la clave usada en el código (`XOR_KEY`), no podrás recuperar los archivos encriptados.
 - **Sobrescribe el archivo original**, por lo que es recomendable hacer una copia de seguridad antes de procesar archivos importantes.
