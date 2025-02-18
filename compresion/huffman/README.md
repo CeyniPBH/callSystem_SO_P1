@@ -18,7 +18,7 @@ El programa entra al archivo, lee y cuenta las frecuencuas de los caracteres, co
 
 - **Sistema operativo:** Linux
 - **Compilador:** GCC o similar
-- **Librerías:** Librerías estandar (<iostream>, <fstream>, <queue>, <unordered_map>, <vector>, <string>).
+- **Librerías:** Librerías estandar (`<iostream>, <fstream>, <queue>, <unordered_map>, <vector>, <string>`).
 
 ## Uso
 
