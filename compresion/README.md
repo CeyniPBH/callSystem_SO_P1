@@ -14,4 +14,10 @@ Ventajas:
   3. *Simplicidad:* Es trabajable y fácil de entender su estructura principal.
 
 ## El algoritmo de LZW.
-Este segundo [algoritmo](https://github.com/CeyniPBH/callSystem_SO_P1/tree/main/compresion/LZW%20Algorithm) ...
+Este segundo [algoritmo](https://github.com/CeyniPBH/callSystem_SO_P1/tree/main/compresion/LZW%20Algorithm) 
+
+Ventajas:
+  1. Eficiencia con patrones persistentes como los archivos `CSV, HTML, PDF`.
+
+Desventajas:
+  1. No funciona muy bien con archivos cuyos caracteres se salen del límite del diccionario o poca organización de la estructura.
