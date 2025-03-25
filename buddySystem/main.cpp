@@ -31,7 +31,7 @@ void mostrarListaChequeo(const string &archivoEntrada, const string &archivoSali
 
 int main(int argc, char* argv[]) {
     // Verificar número de argumentos
-    if (argc != 5) {
+    if (argc != 6) {
         cerr << "Error: Número incorrecto de argumentos." << endl;
         mostrarUso();
         return 1;
@@ -41,8 +41,8 @@ int main(int argc, char* argv[]) {
     string archivoEntrada = argv[1];
     string archivoSalida = argv[2];
     float angulo = atof(argv[3]);
-    float escala = 2;
-    string modoAsignacion = argv[4];
+    float escala = atof(argv[4]);
+    string modoAsignacion = argv[5];
     
     // Verifica si el modo de asignación es válido
     bool usarBuddy = false;
@@ -81,6 +81,10 @@ int main(int argc, char* argv[]) {
 
         // Guardar imagen procesada
         img.guardarImagen(archivoSalida);
+
+        Imagen img2(archivoSalida, &allocador);
+        img2.escalarImagen(escala);
+        img2.guardarImagen(archivoSalida);
     } else {
         cout << "\n[INFO] Usando new/delete para la asignación de memoria." << endl;
 
