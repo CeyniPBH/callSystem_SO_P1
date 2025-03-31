@@ -37,18 +37,25 @@ El siguiente código en C++ implementa el algoritmo Buddy System para la gestió
 
 class BuddyAllocator {
 public:
+    // Constructor: asigna un bloque de memoria de tamaño especificado.
     BuddyAllocator(size_t size);
+
+    // Destructor: libera el bloque de memoria.
     ~BuddyAllocator();
 
+    // Asigna un bloque de memoria del tamaño solicitado.
     void* alloc(size_t size);
+
+    // Libera el bloque de memoria (sin efecto en esta implementación).
     void free(void* ptr);
 
 private:
-    size_t size;
-    void* memoriaBase;
+    size_t size;         // Tamaño total de la memoria gestionada
+    void* memoriaBase;   // Puntero al bloque de memoria base
 };
 
 #endif
+
 ```
 
 ### buddy_allocator.cpp
@@ -57,32 +64,40 @@ private:
 #include <cstdlib>
 #include <iostream>
 
+using namespace std;
+
+// Constructor: asigna un bloque de memoria de tamaño especificado usando malloc.
 BuddyAllocator::BuddyAllocator(size_t size) {
     this->size = size;
     memoriaBase = std::malloc(size);
     if (!memoriaBase) {
-        std::cerr << "Error: No se pudo asignar memoria base con Buddy System.
-";
+        cerr << "Error: No se pudo asignar memoria base con Buddy System.\n";
         exit(1);
     }
 }
 
+// Destructor: libera el bloque de memoria.
 BuddyAllocator::~BuddyAllocator() {
     std::free(memoriaBase);
 }
 
+// Asigna un bloque de memoria del tamaño especificado.
+// Si el tamaño solicitado supera el bloque disponible, devuelve nullptr.
 void* BuddyAllocator::alloc(size_t size) {
     if (size > this->size) {
-        std::cerr << "Error: Tamaño solicitado excede el tamaño disponible.
-";
+        cerr << "Error: Tamaño solicitado (" << size 
+             << " bytes) supera el tamaño disponible (" 
+             << this->size << " bytes).\n";
         return nullptr;
     }
     return memoriaBase;
 }
 
+// Libera el bloque de memoria (sin efecto en esta implementación).
 void BuddyAllocator::free(void* ptr) {
-    // El Buddy System maneja la liberación automáticamente
+    // No liberamos porque el Buddy System maneja esto automáticamente.
 }
+
 ```
 
 ---
@@ -101,8 +116,13 @@ public:
     ~Imagen();
 
     void invertirColores();
+    
     void guardarImagen(const std::string &nombreArchivo) const;
-    void mostrarInfo() const;
+    void mostrarInfo() const;  // ✅ Declaración como const
+
+    // Nuevos métodos para rotación y escalado
+    void rotarImagen(float angulo);
+    void escalarImagen(float factor);
 
 private:
     int alto;
@@ -111,10 +131,11 @@ private:
     unsigned char ***pixeles;
     BuddyAllocator *allocador;
 
-    void convertirBufferAMatriz(unsigned char* buffer);
+    void convertirBufferAMatriz(unsigned char* buffer); // ✅ Declaración privada
 };
 
 #endif
+
 ```
 
 ---
@@ -125,14 +146,17 @@ private:
 #include "stb_image.h"
 #include "stb_image_write.h"
 #include <iostream>
+#include <cmath>
+using namespace std;
 
+
+// ✅ Implementación del constructor
 Imagen::Imagen(const std::string &nombreArchivo, BuddyAllocator *allocador)
     : allocador(allocador) {
 
     unsigned char* buffer = stbi_load(nombreArchivo.c_str(), &ancho, &alto, &canales, 0);
     if (!buffer) {
-        std::cerr << "Error: No se pudo cargar la imagen.
-";
+        cerr << "Error: No se pudo cargar la imagen '" << nombreArchivo << "'.\n";
         exit(1);
     }
 
@@ -140,6 +164,7 @@ Imagen::Imagen(const std::string &nombreArchivo, BuddyAllocator *allocador)
     stbi_image_free(buffer);
 }
 
+// ✅ Implementación del destructor
 Imagen::~Imagen() {
     if (!allocador) {
         for (int y = 0; y < alto; y++) {
@@ -152,6 +177,7 @@ Imagen::~Imagen() {
     }
 }
 
+// ✅ Implementación de convertirBufferAMatriz()
 void Imagen::convertirBufferAMatriz(unsigned char* buffer) {
     int indice = 0;
     pixeles = new unsigned char**[alto];
@@ -167,16 +193,13 @@ void Imagen::convertirBufferAMatriz(unsigned char* buffer) {
     }
 }
 
-void Imagen::invertirColores() {
-    for (int y = 0; y < alto; y++) {
-        for (int x = 0; x < ancho; x++) {
-            for (int c = 0; c < canales; c++) {
-                pixeles[y][x][c] = 255 - pixeles[y][x][c];
-            }
-        }
-    }
+// ✅ Implementación de mostrarInfo()
+void Imagen::mostrarInfo() const {
+    cout << "Dimensiones: " << ancho << " x " << alto << endl;
+    cout << "Canales: " << canales << endl;
 }
 
+// ✅ Implementación de guardarImagen()
 void Imagen::guardarImagen(const std::string &nombreArchivo) const {
     unsigned char* buffer = new unsigned char[alto * ancho * canales];
     int indice = 0;
@@ -188,10 +211,145 @@ void Imagen::guardarImagen(const std::string &nombreArchivo) const {
             }
         }
     }
+    // Guardar la imagen en formato PNG, el tercer parametro es el número de canales
+    // 0 para PNG, 1 para JPEG, 2 para BMP, etc.
+    if (!stbi_write_png(nombreArchivo.c_str(), ancho, alto, canales, buffer, ancho * canales)) {
+        cerr << "Error: No se pudo guardar la imagen en '" << nombreArchivo << "'.\n";
+        delete[] buffer;
+        exit(1);
+    }
 
-    stbi_write_png(nombreArchivo.c_str(), ancho, alto, canales, buffer, ancho * canales);
     delete[] buffer;
+    cout << "[INFO] Imagen guardada correctamente en '" << nombreArchivo << "'.\n";
 }
+
+// ✅ Implementación para invertir los colores.
+void Imagen::invertirColores() {
+    for (int y = 0; y < alto; y++) {
+        for (int x = 0; x < ancho; x++) {
+            for (int c = 0; c < canales; c++) {
+                pixeles[y][x][c] = 255 - pixeles[y][x][c];
+            }
+        }
+    }}
+
+
+    // ✅ Implementación para convertir a escala de grises.
+    void Imagen::escalarImagen(float factor=0.5) {
+        int nuevoAncho = static_cast<int>(ancho * factor);
+        int nuevoAlto = static_cast<int>(alto * factor);
+        unsigned char*** nuevaMatriz = new unsigned char**[nuevoAlto];
+    
+        for (int y = 0; y < nuevoAlto; y++) {
+            nuevaMatriz[y] = new unsigned char*[nuevoAncho];
+            for (int x = 0; x < nuevoAncho; x++) {
+                nuevaMatriz[y][x] = new unsigned char[canales];
+                
+                float srcX = x / factor;
+                float srcY = y / factor;
+                int x0 = static_cast<int>(srcX);
+                int y0 = static_cast<int>(srcY);
+                int x1 = min(x0 + 1, ancho - 1);
+                int y1 = min(y0 + 1, alto - 1);
+    
+                float dx = srcX - x0;
+                float dy = srcY - y0;
+    
+                for (int c = 0; c < canales; c++) {
+                    float valor = (1 - dx) * (1 - dy) * pixeles[y0][x0][c] +
+                                  dx * (1 - dy) * pixeles[y0][x1][c] +
+                                  (1 - dx) * dy * pixeles[y1][x0][c] +
+                                  dx * dy * pixeles[y1][x1][c];
+                    nuevaMatriz[y][x][c] = static_cast<unsigned char>(valor);
+                }
+            }
+        }
+    
+        // Liberar la memoria de la imagen original
+        for (int y = 0; y < alto; y++) {
+            for (int x = 0; x < ancho; x++) {
+                delete[] pixeles[y][x];
+            }
+            delete[] pixeles[y];
+        }
+        delete[] pixeles;
+    
+        // Asignar la nueva matriz
+        pixeles = nuevaMatriz;
+        ancho = nuevoAncho;
+        alto = nuevoAlto;
+    }
+
+    // ✅ Implementación para rotar la imagen (sentido antihorario)
+    void Imagen::rotarImagen(float angulo) {
+        float radianes = angulo * M_PI / 180.0;
+        float cosA = cos(radianes);
+        float sinA = sin(radianes);
+    
+        int nuevoAncho = abs(ancho * cosA) + abs(alto * sinA);
+        int nuevoAlto = abs(ancho * sinA) + abs(alto * cosA);
+    
+        unsigned char*** nuevaMatriz = new unsigned char**[nuevoAlto];
+        for (int y = 0; y < nuevoAlto; y++) {
+            nuevaMatriz[y] = new unsigned char*[nuevoAncho];
+            for (int x = 0; x < nuevoAncho; x++) {
+                nuevaMatriz[y][x] = new unsigned char[canales];
+                for (int c = 0; c < canales; c++) {
+                    nuevaMatriz[y][x][c] = 255; // Rellenar con blanco
+                }
+            }
+        }
+    
+        int cx = ancho / 2;
+        int cy = alto / 2;
+        int ncx = nuevoAncho / 2;
+        int ncy = nuevoAlto / 2;
+    
+        for (int ny = 0; ny < nuevoAlto; ny++) {
+            for (int nx = 0; nx < nuevoAncho; nx++) {
+                float xOriginal = cosA * (nx - ncx) + sinA * (ny - ncy) + cx;
+                float yOriginal = -sinA * (nx - ncx) + cosA * (ny - ncy) + cy;
+    
+                int x0 = floor(xOriginal);
+                int y0 = floor(yOriginal);
+                int x1 = x0 + 1;
+                int y1 = y0 + 1;
+    
+                if (x0 >= 0 && x1 < ancho && y0 >= 0 && y1 < alto) {
+                    for (int c = 0; c < canales; c++) {
+                        float p00 = pixeles[y0][x0][c];
+                        float p10 = pixeles[y0][x1][c];
+                        float p01 = pixeles[y1][x0][c];
+                        float p11 = pixeles[y1][x1][c];
+    
+                        float dx = xOriginal - x0;
+                        float dy = yOriginal - y0;
+    
+                        float interpolado = (1 - dx) * (1 - dy) * p00 +
+                                            dx * (1 - dy) * p10 +
+                                            (1 - dx) * dy * p01 +
+                                            dx * dy * p11;
+    
+                        nuevaMatriz[ny][nx][c] = static_cast<unsigned char>(interpolado);
+                    }
+                }
+            }
+        }
+    
+        // Liberar memoria de la imagen original
+        for (int y = 0; y < alto; y++) {
+            for (int x = 0; x < ancho; x++) {
+                delete[] pixeles[y][x];
+            }
+            delete[] pixeles[y];
+        }
+        delete[] pixeles;
+    
+        // Asignar la nueva matriz
+        pixeles = nuevaMatriz;
+        ancho = nuevoAncho;
+        alto = nuevoAlto;
+    }
 ```
 
 ---
