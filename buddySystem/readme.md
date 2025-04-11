@@ -1,34 +1,16 @@
 
-# Sistema de Gestión de Memoria Buddy System
+# Procesamiento de imágenes con Buddy system.
 
-## ¿Qué es el Buddy System?
-El Buddy System es un algoritmo de gestión de memoria dinámica que divide un bloque de memoria en partes de tamaños de potencia de dos. Cuando se solicita memoria, el sistema intenta encontrar el bloque de tamaño más cercano y, si el bloque disponible es más grande que el solicitado, se divide en mitades (buddies).
-
-Cuando se libera un bloque de memoria, si el bloque adyacente (buddy) también está libre, ambos bloques se fusionan para formar un bloque más grande. Este proceso se repite recursivamente hasta que ya no hay bloques adyacentes libres para fusionar.
-
-### Ventajas del Buddy System
-- Permite dividir y fusionar bloques de manera rápida y eficiente.  
-- Reduce la fragmentación externa al garantizar que las divisiones y fusiones sean de tamaños de potencia de dos.  
-- Fácil implementación mediante árboles binarios o estructuras de bits.  
-
-### Desventajas del Buddy System
-- Puede generar fragmentación interna si la solicitud de memoria no es exactamente una potencia de dos.  
-- La fusión de bloques puede requerir procesamiento adicional.  
+## Propósito del proyecto.
+El proyecto se trabaja para practicar o conocer y entender las expresiones de rotación y escalamiento de una imagen, entender porque consume grandes cantidades de memoria y comparando la eficiencia de la gestión de memoria mediante el Buddy system con la asignación dinámica convencional `(new/delete)`
 
 ---
 
-## ¿Para qué se emplea en el procesamiento de imágenes?
-En procesamiento de imágenes, el Buddy System es útil porque las imágenes requieren bloques de memoria contiguos para almacenar los datos de píxeles. Al dividir y fusionar bloques de memoria de manera eficiente, el Buddy System facilita:  
-- Almacenamiento eficiente de datos de imágenes en memoria.  
-- Rápida reasignación de memoria para operaciones como filtros, rotaciones e inversiones de color.  
-- Liberación de memoria ordenada y eficiente para evitar fragmentación.  
-
----
-
-## Explicación del Código
+## Estructura del programa.
 El siguiente código en C++ implementa el algoritmo Buddy System para la gestión de memoria en procesamiento de imágenes.
 
 ### buddy_allocator.h
+Se encarga de encapsular la lógica del algoritmo Buddy system para la gestión de memoria.
 ```cpp
 #ifndef BUDDY_ALLOCATOR_H
 #define BUDDY_ALLOCATOR_H
@@ -59,6 +41,7 @@ private:
 ```
 
 ### buddy_allocator.cpp
+Se encarga de implementar los métodos declarados en `buddy_allocator.h`, es decir, definir como funciona realmente el buddy system.
 ```cpp
 #include "buddy_allocator.h"
 #include <cstdlib>
@@ -103,6 +86,7 @@ void BuddyAllocator::free(void* ptr) {
 ---
 
 ### imagen.h
+Se encarga de encapsular la lógica para cargar, manipular y guardar las imágenes.
 ```cpp
 #ifndef IMAGEN_H
 #define IMAGEN_H
@@ -141,6 +125,7 @@ private:
 ---
 
 ### imagen.cpp
+Implementa la lógica propuesta en `imagen.h`, contiene la lógica para cargar y manipular los pixeles de las imagenes (rotar, escalar e invertir colores) y guardarla.
 ```cpp
 #include "imagen.h"
 #include "stb_image.h"
@@ -354,30 +339,85 @@ void Imagen::invertirColores() {
 
 ---
 
-## ¿Cómo se usa el Buddy System en este código?
-1. **Asignación de memoria:**  
-   El `BuddyAllocator` asigna bloques de memoria usando el algoritmo de división y combinación de buddies.
+## Puntos claves Adicionales.
+1. **stb_image:**  
+   Esta biblioteca simplifica la carga y guardado de imágenes, evitando tener que escribir código complejo para decodificar diferentes formatos de archivos.
 
-2. **Conversión de imagen:**  
-   Los datos de la imagen se convierten a una estructura de matriz tridimensional (`alto x ancho x canales`) usando `convertirBufferAMatriz()`.
+2. **Interpolación bilineal:**  
+   Se utiliza en `escalarImagen`y `rotarImagen` para obtener una mejor calidad a la imagen al redimensionar o rotar, ayudando a suavizar y reducir los pixeles y el efecto de "bloques".
 
-3. **Procesamiento de la imagen:**  
+3. **Gestion de memoria:**  
    La operación de inversión de colores (`invertirColores()`) altera directamente los valores en la matriz.
 
 4. **Liberación de memoria:**  
-   El destructor `~Imagen()` libera los bloques de memoria asignados para evitar fugas de memoria.
+   El código es responsable de asignar y liberar memoria correctamente para evitar fugas de memoria. El uso de `new, new[], delete y delete[]` nos ayuda. El `buddyAllocator` se introduce como una alternativa a la gestión de manual con `new/delete`.
 
-5. **Uso del Buddy System:**  
-   Si el Buddy System está habilitado, la asignación y liberación de memoria se gestiona automáticamente mediante el algoritmo de división y combinación de bloques.
+---
 
+## Requisitos previos.
+- **Compilador:** g++/gcc.  
+- **Librerías:** `stb_image.h, stb_image_write.h`
+
+---
+
+## Parámetros.
+```bash
+    entrada.jpg: archivo de imagenes de entrada.
+    salida.jpg: archivo donde se guarda la imagen procesada.
+    -angulo <valor>: define el ángulo de rotación.
+    -escalar <valor>: define el factor de escalado.
+    -buddy: activa el modo Buddy system (si se omite, se usará el modo convencional `new/delete`)
+
+    Nota: <valor> equivale a el valor que se quiera definir en la acción de la imagen.
+```
+
+---
+
+## Ejecución.
+```bash
+    ./programa_imagen entrada.jpg salida.jpg -angulo 45 -escalar 1.5 -buddy
+```
+## Ejemplo de salida.
+```bash
+    === PROCESAMIENTO DE IMAGEN ===
+    Archivo de entrada: entrada.jpg
+    Archivo de salida: salida.jpg
+    Modo de asignación de memoria: Buddy System
+    ------------------------
+    Dimensiones originales: 1920 x 1080
+    Dimensiones finales: 2880 x 1620
+    Canales: 3 (RGB)
+    Ángulo de rotación: 45
+    Factor de escalado: 1.5
+    ------------------------
+    [INFO] Imagen rotada correctamente.
+    [INFO] Imagen escalada correctamente.
+    ------------------------
+    TIEMPO DE PROCESAMIENTO:
+    - Sin Buddy System: 120 ms
+    - Con Buddy System: 95 ms
+
+    MEMORIA UTILIZADA:
+    - Sin Buddy System: 2.1 MB
+    - Con Buddy System: 1.8 MB
+    ------------------------
+    [INFO] Imagen guardada correctamente en salida.jpg
+
+```
 ---
 
 ## Ventajas del Buddy System en este código
-- Reducción de fragmentación.  
-- Rápida reasignación de memoria.  
-- Mejora en el rendimiento del procesamiento de imágenes.  
+- Reducción de fragmentación.
+- Rápida reasignación de memoria.
+- Mejora en el rendimiento del procesamiento de imágenes.
 
 ---
 
+## Preguntas de Análisis.
+| pregunta | respuesta |
+| ¿Qué diferencia observaste en el tiempo de procesamiento entre los dos modos de asignación de memoria?
+ | Se buscaba que el cambio en el tiempo variara en beneficio del Buddy system, que fuera más rapido. Al momento de ponerlo en práctica, no hubo mucha diferenncia entre los modos de asignación de memoria, en varias pruebas que se hicieron. |
+
+---
 ## Conclusión
-El Buddy System es ideal para aplicaciones de procesamiento de imágenes que requieren asignación y liberación rápida de memoria. En este código, el Buddy System proporciona una estructura eficiente para gestionar bloques de memoria contiguos y optimiza las operaciones de inversión y manipulación de datos de imagen.
+El Buddy System es ideal para aplicaciones de procesamiento de imágenes que requieren asignación y liberación rápida de memoria. Este código proprciona una base funcional para el procesamiento de imágenes, demonstrando la rotación y el escalamiento con la `interpolación bilineal` y la organización de datos de imagenes en una matriz tridimensional. Se buscó simplificar el pograma, pero sobre todo trabajar la practicidad de cada funcionalidad.
