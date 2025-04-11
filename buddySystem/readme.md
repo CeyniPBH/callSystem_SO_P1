@@ -406,17 +406,26 @@ void Imagen::invertirColores() {
 ```
 ---
 
-## Ventajas del Buddy System en este código
+## Ventajas del Buddy System en este código.
 - Reducción de fragmentación.
 - Rápida reasignación de memoria.
 - Mejora en el rendimiento del procesamiento de imágenes.
-
+  
+## Desventajas.
+- fragmentación interna: desperdicia memoria al redondear los tamaños de los bloques a potencias de 2.
+- Complejidad de implementación: puede ser más tediosos en cuanto a la cantidad de asignaciones.
+- No siempre es la mejor opción: depende del patrón de asignación puede variar la técnica (pools de memoria).
 ---
 
 ## Preguntas de Análisis.
 | pregunta | respuesta |
-| ¿Qué diferencia observaste en el tiempo de procesamiento entre los dos modos de asignación de memoria?
- | Se buscaba que el cambio en el tiempo variara en beneficio del Buddy system, que fuera más rapido. Al momento de ponerlo en práctica, no hubo mucha diferenncia entre los modos de asignación de memoria, en varias pruebas que se hicieron. |
+|----------|-----------|
+| ¿Qué diferencia observaste en el tiempo de procesamiento entre los dos modos de asignación de memoria?| Se buscaba que el cambio en el tiempo variara en beneficio del Buddy system, que fuera más rapido. Al momento de ponerlo en práctica, no hubo mucha diferenncia entre los modos de asignación de memoria, en varias pruebas que se hicieron.|
+|¿Cuál fue el impacto del tamaño de la imagen en el consumo de memoria y el rendimiento?| En el consumo de memoria como la matriz pixeles tiene dimensiones `[alto], [ancho], [canales]`, entonces el consumo aumenta exponencialmente. Por otro lado, el rendimiento varía según la funcionalidad, como es más trabajo poder rotar la imagen, su rendimiento lineal aumenta.|
+| ¿Por qué el Buddy System es más eficiente o menos eficiente que el uso de new/delete en este caso?| por la carga de asignación y liberaciones de bloques de tamaños, ya que reduce la fragmentación externa y facilita la coalescencia de bloques contiguos.|
+| ¿Cómo podrías optimizar el uso de memoria y tiempo de procesamiento en este programa?| Con paralelización y reducción de copias. La paralelización para trabajar con hilos o técnicas SIMD; y la reducción de copias para minimizar la cantidad de datos innecesarios, como algunas operaciones o la modificación de imágenes en lugar de crear una nueva matriz.|
+| ¿Qué implicaciones podría tener esta solución en sistemas con limitaciones de memoria o en dispositivos embebidos?| En la limitación de memoria el tamaño de la imagen que se puede procesar estará restringido. En los dispositivos embebidos, la optimización del tiempo de procesamiento.|
+| ¿Cómo afectaría el aumento de canales (por ejemplo, de RGB a RGBA) en el rendimiento y consumo de memoria?| El consumo de memoria aumentaría linealmente con el número de canales. El tiempo de procesameint ode las operaciones que iteran sobre los pixeles también aumentarían linealmente con el número de canales, debido a que se realiza la misma operación en cada canal de cada pixel.|
 
 ---
 ## Conclusión
