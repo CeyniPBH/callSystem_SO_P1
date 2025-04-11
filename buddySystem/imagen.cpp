@@ -67,7 +67,8 @@ void Imagen::guardarImagen(const std::string &nombreArchivo) const {
             }
         }
     }
-
+    // Guardar la imagen en formato PNG, el tercer parametro es el número de canales
+    // 0 para PNG, 1 para JPEG, 2 para BMP, etc.
     if (!stbi_write_png(nombreArchivo.c_str(), ancho, alto, canales, buffer, ancho * canales)) {
         cerr << "Error: No se pudo guardar la imagen en '" << nombreArchivo << "'.\n";
         delete[] buffer;
@@ -78,6 +79,7 @@ void Imagen::guardarImagen(const std::string &nombreArchivo) const {
     cout << "[INFO] Imagen guardada correctamente en '" << nombreArchivo << "'.\n";
 }
 
+// ✅ Implementación para invertir los colores.
 void Imagen::invertirColores() {
     for (int y = 0; y < alto; y++) {
         for (int x = 0; x < ancho; x++) {
@@ -88,6 +90,7 @@ void Imagen::invertirColores() {
     }}
 
 
+    // ✅ Implementación para convertir a escala de grises.
     void Imagen::escalarImagen(float factor=0.5) {
         int nuevoAncho = static_cast<int>(ancho * factor);
         int nuevoAlto = static_cast<int>(alto * factor);
@@ -133,6 +136,7 @@ void Imagen::invertirColores() {
         alto = nuevoAlto;
     }
 
+    // ✅ Implementación para rotar la imagen (sentido antihorario)
     void Imagen::rotarImagen(float angulo) {
         float radianes = angulo * M_PI / 180.0;
         float cosA = cos(radianes);
