@@ -12,114 +12,193 @@ El siguiente código en C++ implementa el algoritmo Buddy System para la gestió
 ### buddy_allocator.h
 Se encarga de encapsular la lógica del algoritmo Buddy system para la gestión de memoria.
 ```cpp
-#ifndef BUDDY_ALLOCATOR_H
-#define BUDDY_ALLOCATOR_H
+#ifndef BUDDYALLOCATOR_H
+#define BUDDYALLOCATOR_H
 
+#include <vector>
+#include <map>
 #include <cstddef>
+#include <iostream>
 
 class BuddyAllocator {
-public:
-    // Constructor: asigna un bloque de memoria de tamaño especificado.
-    BuddyAllocator(size_t size);
-
-    // Destructor: libera el bloque de memoria.
-    ~BuddyAllocator();
-
-    // Asigna un bloque de memoria del tamaño solicitado.
-    void* alloc(size_t size);
-
-    // Libera el bloque de memoria (sin efecto en esta implementación).
-    void free(void* ptr);
-
 private:
-    size_t size;         // Tamaño total de la memoria gestionada
-    void* memoriaBase;   // Puntero al bloque de memoria base
+    size_t totalSize;
+    std::vector<char> memoryBlocks;
+    std::map<size_t, size_t> allocatedBlocks; // Bloques asignados: índice -> tamaño
+    std::map<size_t, size_t> freeBlocks;      // Bloques libres: índice -> tamaño
+
+    size_t nextPowerOfTwo(size_t n);
+    void mergeBuddies(size_t index, size_t size);
+
+public:
+    BuddyAllocator(size_t size);
+    void* allocate(size_t size);
+    void deallocate(void* ptr);
+    
+    // Funciones de monitoreo
+    size_t getTotalMemory() const;
+    size_t getUsedMemory() const;
+    size_t getFreeMemory() const;
+    void printMemoryStatus() const;
 };
 
-#endif
+#endif // BUDDYALLOCATOR_H
 
 ```
 
 ### buddy_allocator.cpp
 Se encarga de implementar los métodos declarados en `buddy_allocator.h`, es decir, definir como funciona realmente el buddy system.
 ```cpp
-#include "buddy_allocator.h"
-#include <cstdlib>
-#include <iostream>
+#include "BuddyAllocator.h"
 
-using namespace std;
+size_t BuddyAllocator::nextPowerOfTwo(size_t n) {
+    if (n == 0) return 1;
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    n |= n >> 32;
+    return n + 1;
+}
 
-// Constructor: asigna un bloque de memoria de tamaño especificado usando malloc.
-BuddyAllocator::BuddyAllocator(size_t size) {
-    this->size = size;
-    memoriaBase = std::malloc(size);
-    if (!memoriaBase) {
-        cerr << "Error: No se pudo asignar memoria base con Buddy System.\n";
-        exit(1);
+BuddyAllocator::BuddyAllocator(size_t size) 
+    : totalSize(nextPowerOfTwo(size)), memoryBlocks(totalSize, 0) {}
+
+void* BuddyAllocator::allocate(size_t size) {
+    if (size == 0) return nullptr;
+    
+    size = nextPowerOfTwo(size);
+    if (size > totalSize) return nullptr;
+
+    // Buscar el primer bloque libre del tamaño adecuado
+    for (size_t i = 0; i <= totalSize - size; i += size) {
+        if (memoryBlocks[i] == 0) {
+            bool blockFree = true;
+            // Verificar que todo el bloque esté libre
+            for (size_t j = i; j < i + size; ++j) {
+                if (memoryBlocks[j] != 0) {
+                    blockFree = false;
+                    break;
+                }
+            }
+            
+            if (blockFree) {
+                // Marcar como ocupado
+                for (size_t j = i; j < i + size; ++j) {
+                    memoryBlocks[j] = 1;
+                }
+                allocatedBlocks[i] = size;
+                return &memoryBlocks[i];
+            }
+        }
+    }
+    return nullptr;
+}
+
+void BuddyAllocator::deallocate(void* ptr) {
+    if (!ptr) return;
+
+    size_t index = static_cast<char*>(ptr) - &memoryBlocks[0];
+    if (index >= totalSize || !allocatedBlocks.count(index)) return;
+
+    size_t size = allocatedBlocks[index];
+    // Marcar como libre
+    for (size_t i = index; i < index + size; ++i) {
+        memoryBlocks[i] = 0;
+    }
+    allocatedBlocks.erase(index);
+    
+    // Intentar fusionar con buddies
+    mergeBuddies(index, size);
+}
+
+void BuddyAllocator::mergeBuddies(size_t index, size_t size) {
+    size_t buddyIndex = index ^ size;
+    
+    while (size < totalSize) {
+        // Verificar si el buddy está libre y es del mismo tamaño
+        if (buddyIndex < totalSize && memoryBlocks[buddyIndex] == 0) {
+            bool buddyCompletelyFree = true;
+            for (size_t i = buddyIndex; i < buddyIndex + size; ++i) {
+                if (memoryBlocks[i] != 0) {
+                    buddyCompletelyFree = false;
+                    break;
+                }
+            }
+            
+            if (buddyCompletelyFree) {
+                // Fusionar bloques
+                size *= 2;
+                index = std::min(index, buddyIndex);
+                buddyIndex = index ^ size;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
     }
 }
 
-// Destructor: libera el bloque de memoria.
-BuddyAllocator::~BuddyAllocator() {
-    std::free(memoriaBase);
+// Funciones de monitoreo
+size_t BuddyAllocator::getTotalMemory() const {
+    return totalSize;
 }
 
-// Asigna un bloque de memoria del tamaño especificado.
-// Si el tamaño solicitado supera el bloque disponible, devuelve nullptr.
-void* BuddyAllocator::alloc(size_t size) {
-    if (size > this->size) {
-        cerr << "Error: Tamaño solicitado (" << size 
-             << " bytes) supera el tamaño disponible (" 
-             << this->size << " bytes).\n";
-        return nullptr;
+size_t BuddyAllocator::getUsedMemory() const {
+    size_t used = 0;
+    for (const auto& block : allocatedBlocks) {
+        used += block.second;
     }
-    return memoriaBase;
+    return used;
 }
 
-// Libera el bloque de memoria (sin efecto en esta implementación).
-void BuddyAllocator::free(void* ptr) {
-    // No liberamos porque el Buddy System maneja esto automáticamente.
+size_t BuddyAllocator::getFreeMemory() const {
+    return totalSize - getUsedMemory();
 }
 
+void BuddyAllocator::printMemoryStatus() const {
+    std::cout << "Estado de memoria:\n";
+    std::cout << "Total: " << getTotalMemory() << " bytes\n";
+    std::cout << "En uso: " << getUsedMemory() << " bytes\n";
+    std::cout << "Libres: " << getFreeMemory() << " bytes\n";
+    
+    std::cout << "Bloques asignados:\n";
+    for (const auto& block : allocatedBlocks) {
+        std::cout << " - Dirección: " << block.first 
+                  << ", Tamaño: " << block.second << " bytes\n";
+    }
+}
 ```
-
 ---
 
 ### imagen.h
 Se encarga de encapsular la lógica para cargar, manipular y guardar las imágenes.
 ```cpp
-#ifndef IMAGEN_H
-#define IMAGEN_H
+// image.h
+#ifndef IMAGE_H
+#define IMAGE_H
 
+#include <opencv2/opencv.hpp>
 #include <string>
-#include "buddy_allocator.h"
+#include <cmath>
 
-class Imagen {
+class ImageProcessor {
 public:
-    Imagen(const std::string &nombreArchivo, BuddyAllocator *allocador = nullptr);
-    ~Imagen();
-
-    void invertirColores();
+    cv::Mat loadImage(const std::string& filepath);
+    cv::Mat scaleImage(const cv::Mat& image, double scaleFactor);
+    void scaleImageToBuddy(const cv::Mat& src, cv::Mat& dst, double scaleFactor);
+    cv::Mat rotateImage(const cv::Mat& image, double angle);
+    void rotateImageToBuddy(const cv::Mat& src, cv::Mat& dst, double angle);
+    cv::Vec3b bilinearInterpolate(const cv::Mat& img, float x, float y);
     
-    void guardarImagen(const std::string &nombreArchivo) const;
-    void mostrarInfo() const;  // ✅ Declaración como const
-
-    // Nuevos métodos para rotación y escalado
-    void rotarImagen(float angulo);
-    void escalarImagen(float factor);
-
 private:
-    int alto;
-    int ancho;
-    int canales;
-    unsigned char ***pixeles;
-    BuddyAllocator *allocador;
-
-    void convertirBufferAMatriz(unsigned char* buffer); // ✅ Declaración privada
+    
 };
 
-#endif
-
+#endif // IMAGE_H
 ```
 
 ---
@@ -127,216 +206,202 @@ private:
 ### imagen.cpp
 Implementa la lógica propuesta en `imagen.h`, contiene la lógica para cargar y manipular los pixeles de las imagenes (rotar, escalar e invertir colores) y guardarla.
 ```cpp
-#include "imagen.h"
-#include "stb_image.h"
-#include "stb_image_write.h"
+#include "image.h"
 #include <iostream>
-#include <cmath>
-using namespace std;
 
-
-// ✅ Implementación del constructor
-Imagen::Imagen(const std::string &nombreArchivo, BuddyAllocator *allocador)
-    : allocador(allocador) {
-
-    unsigned char* buffer = stbi_load(nombreArchivo.c_str(), &ancho, &alto, &canales, 0);
-    if (!buffer) {
-        cerr << "Error: No se pudo cargar la imagen '" << nombreArchivo << "'.\n";
+cv::Mat ImageProcessor::loadImage(const std::string& filepath) {
+    cv::Mat image = cv::imread(filepath);
+    if (image.empty()) {
+        std::cerr << "Error al cargar la imagen: " << filepath << std::endl;
         exit(1);
     }
-
-    convertirBufferAMatriz(buffer);
-    stbi_image_free(buffer);
+    return image;
 }
 
-// ✅ Implementación del destructor
-Imagen::~Imagen() {
-    if (!allocador) {
-        for (int y = 0; y < alto; y++) {
-            for (int x = 0; x < ancho; x++) {
-                delete[] pixeles[y][x];
+cv::Mat ImageProcessor::scaleImage(const cv::Mat& image, double scaleFactor) {
+    int newRows = static_cast<int>(image.rows * scaleFactor);
+    int newCols = static_cast<int>(image.cols * scaleFactor);
+    cv::Mat scaledImage(newRows, newCols, image.type());
+
+    for (int y = 0; y < newRows; ++y) {
+        for (int x = 0; x < newCols; ++x) {
+            float srcX = x / scaleFactor;
+            float srcY = y / scaleFactor;
+
+            int x1 = static_cast<int>(srcX);
+            int y1 = static_cast<int>(srcY);
+            int x2 = std::min(x1 + 1, image.cols - 1);
+            int y2 = std::min(y1 + 1, image.rows - 1);
+
+            float dx = srcX - x1;
+            float dy = srcY - y1;
+
+            cv::Vec3b p1 = image.at<cv::Vec3b>(y1, x1);
+            cv::Vec3b p2 = image.at<cv::Vec3b>(y1, x2);
+            cv::Vec3b p3 = image.at<cv::Vec3b>(y2, x1);
+            cv::Vec3b p4 = image.at<cv::Vec3b>(y2, x2);
+
+            cv::Vec3b interpolatedPixel;
+            for (int c = 0; c < 3; ++c) {
+                float interpolatedValue =
+                    (1 - dx) * (1 - dy) * p1[c] +
+                    dx * (1 - dy) * p2[c] +
+                    (1 - dx) * dy * p3[c] +
+                    dx * dy * p4[c];
+
+                interpolatedPixel[c] = static_cast<uchar>(interpolatedValue);
             }
-            delete[] pixeles[y];
+
+            scaledImage.at<cv::Vec3b>(y, x) = interpolatedPixel;
         }
-        delete[] pixeles;
+    }
+
+    return scaledImage;
+}
+
+void ImageProcessor::scaleImageToBuddy(const cv::Mat& src, cv::Mat& dst, double scaleFactor) {
+    int newRows = static_cast<int>(src.rows * scaleFactor);
+    int newCols = static_cast<int>(src.cols * scaleFactor);
+    
+    CV_Assert(dst.rows == newRows && dst.cols == newCols && dst.type() == src.type());
+
+    for (int y = 0; y < newRows; ++y) {
+        for (int x = 0; x < newCols; ++x) {
+            float srcX = x / scaleFactor;
+            float srcY = y / scaleFactor;
+
+            int x1 = static_cast<int>(srcX);
+            int y1 = static_cast<int>(srcY);
+            int x2 = std::min(x1 + 1, src.cols - 1);
+            int y2 = std::min(y1 + 1, src.rows - 1);
+
+            float dx = srcX - x1;
+            float dy = srcY - y1;
+
+            cv::Vec3b p1 = src.at<cv::Vec3b>(y1, x1);
+            cv::Vec3b p2 = src.at<cv::Vec3b>(y1, x2);
+            cv::Vec3b p3 = src.at<cv::Vec3b>(y2, x1);
+            cv::Vec3b p4 = src.at<cv::Vec3b>(y2, x2);
+
+            cv::Vec3b interpolatedPixel;
+            for (int c = 0; c < 3; ++c) {
+                float interpolatedValue =
+                    (1 - dx) * (1 - dy) * p1[c] +
+                    dx * (1 - dy) * p2[c] +
+                    (1 - dx) * dy * p3[c] +
+                    dx * dy * p4[c];
+
+                interpolatedPixel[c] = static_cast<uchar>(interpolatedValue);
+            }
+
+            dst.at<cv::Vec3b>(y, x) = interpolatedPixel;
+        }
     }
 }
 
-// ✅ Implementación de convertirBufferAMatriz()
-void Imagen::convertirBufferAMatriz(unsigned char* buffer) {
-    int indice = 0;
-    pixeles = new unsigned char**[alto];
+cv::Vec3b ImageProcessor::bilinearInterpolate(const cv::Mat& img, float x, float y) {
+    int x1 = static_cast<int>(x);
+    int y1 = static_cast<int>(y);
+    int x2 = std::min(x1 + 1, img.cols - 1);
+    int y2 = std::min(y1 + 1, img.rows - 1);
 
-    for (int y = 0; y < alto; y++) {
-        pixeles[y] = new unsigned char*[ancho];
-        for (int x = 0; x < ancho; x++) {
-            pixeles[y][x] = new unsigned char[canales];
-            for (int c = 0; c < canales; c++) {
-                pixeles[y][x][c] = buffer[indice++];
+    float dx = x - x1;
+    float dy = y - y1;
+
+    cv::Vec3b p1 = img.at<cv::Vec3b>(y1, x1);
+    cv::Vec3b p2 = img.at<cv::Vec3b>(y1, x2);
+    cv::Vec3b p3 = img.at<cv::Vec3b>(y2, x1);
+    cv::Vec3b p4 = img.at<cv::Vec3b>(y2, x2);
+
+    cv::Vec3b interpolatedPixel;
+    for (int c = 0; c < 3; ++c) {
+        float interpolatedValue = 
+            (1 - dx) * (1 - dy) * p1[c] +
+            dx * (1 - dy) * p2[c] +
+            (1 - dx) * dy * p3[c] +
+            dx * dy * p4[c];
+
+        interpolatedPixel[c] = static_cast<uchar>(interpolatedValue);
+    }
+
+    return interpolatedPixel;
+}
+
+cv::Mat ImageProcessor::rotateImage(const cv::Mat& image, double angle) {
+    // Convertir ángulo a radianes
+    double radians = angle * M_PI / 180.0;
+    double cos_theta = cos(radians);
+    double sin_theta = sin(radians);
+
+    // Calcular dimensiones de la nueva imagen
+    double new_width = abs(image.cols * cos_theta) + abs(image.rows * sin_theta);
+    double new_height = abs(image.cols * sin_theta) + abs(image.rows * cos_theta);
+
+    // Crear imagen de destino
+    cv::Mat rotatedImage(static_cast<int>(new_height), static_cast<int>(new_width), image.type());
+
+    // Centro de la imagen original y nueva
+    double original_center_x = image.cols / 2.0;
+    double original_center_y = image.rows / 2.0;
+    double new_center_x = new_width / 2.0;
+    double new_center_y = new_height / 2.0;
+
+    for (int y = 0; y < rotatedImage.rows; ++y) {
+        for (int x = 0; x < rotatedImage.cols; ++x) {
+            // Convertir coordenadas al sistema centrado
+            double x_offset = x - new_center_x;
+            double y_offset = y - new_center_y;
+
+            // Rotación inversa (de destino a origen)
+            double original_x = x_offset * cos_theta + y_offset * sin_theta + original_center_x;
+            double original_y = -x_offset * sin_theta + y_offset * cos_theta + original_center_y;
+
+            // Si el punto está dentro de la imagen original
+            if (original_x >= 0 && original_x < image.cols && original_y >= 0 && original_y < image.rows) {
+                rotatedImage.at<cv::Vec3b>(y, x) = bilinearInterpolate(image, original_x, original_y);
+            } else {
+                // Poner negro si está fuera de los límites
+                rotatedImage.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
+            }
+        }
+    }
+
+    return rotatedImage;
+}
+
+void ImageProcessor::rotateImageToBuddy(const cv::Mat& src, cv::Mat& dst, double angle) {
+    // Convertir ángulo a radianes
+    double radians = angle * M_PI / 180.0;
+    double cos_theta = cos(radians);
+    double sin_theta = sin(radians);
+
+    // Centro de la imagen original y nueva
+    double original_center_x = src.cols / 2.0;
+    double original_center_y = src.rows / 2.0;
+    double new_center_x = dst.cols / 2.0;
+    double new_center_y = dst.rows / 2.0;
+
+    for (int y = 0; y < dst.rows; ++y) {
+        for (int x = 0; x < dst.cols; ++x) {
+            // Convertir coordenadas al sistema centrado
+            double x_offset = x - new_center_x;
+            double y_offset = y - new_center_y;
+
+            // Rotación inversa (de destino a origen)
+            double original_x = x_offset * cos_theta + y_offset * sin_theta + original_center_x;
+            double original_y = -x_offset * sin_theta + y_offset * cos_theta + original_center_y;
+
+            // Si el punto está dentro de la imagen original
+            if (original_x >= 0 && original_x < src.cols && original_y >= 0 && original_y < src.rows) {
+                dst.at<cv::Vec3b>(y, x) = bilinearInterpolate(src, original_x, original_y);
+            } else {
+                // Poner negro si está fuera de los límites
+                dst.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 0);
             }
         }
     }
 }
-
-// ✅ Implementación de mostrarInfo()
-void Imagen::mostrarInfo() const {
-    cout << "Dimensiones: " << ancho << " x " << alto << endl;
-    cout << "Canales: " << canales << endl;
-}
-
-// ✅ Implementación de guardarImagen()
-void Imagen::guardarImagen(const std::string &nombreArchivo) const {
-    unsigned char* buffer = new unsigned char[alto * ancho * canales];
-    int indice = 0;
-
-    for (int y = 0; y < alto; y++) {
-        for (int x = 0; x < ancho; x++) {
-            for (int c = 0; c < canales; c++) {
-                buffer[indice++] = pixeles[y][x][c];
-            }
-        }
-    }
-    // Guardar la imagen en formato PNG, el tercer parametro es el número de canales
-    // 0 para PNG, 1 para JPEG, 2 para BMP, etc.
-    if (!stbi_write_png(nombreArchivo.c_str(), ancho, alto, canales, buffer, ancho * canales)) {
-        cerr << "Error: No se pudo guardar la imagen en '" << nombreArchivo << "'.\n";
-        delete[] buffer;
-        exit(1);
-    }
-
-    delete[] buffer;
-    cout << "[INFO] Imagen guardada correctamente en '" << nombreArchivo << "'.\n";
-}
-
-// ✅ Implementación para invertir los colores.
-void Imagen::invertirColores() {
-    for (int y = 0; y < alto; y++) {
-        for (int x = 0; x < ancho; x++) {
-            for (int c = 0; c < canales; c++) {
-                pixeles[y][x][c] = 255 - pixeles[y][x][c];
-            }
-        }
-    }}
-
-
-    // ✅ Implementación para convertir a escala de grises.
-    void Imagen::escalarImagen(float factor=0.5) {
-        int nuevoAncho = static_cast<int>(ancho * factor);
-        int nuevoAlto = static_cast<int>(alto * factor);
-        unsigned char*** nuevaMatriz = new unsigned char**[nuevoAlto];
-    
-        for (int y = 0; y < nuevoAlto; y++) {
-            nuevaMatriz[y] = new unsigned char*[nuevoAncho];
-            for (int x = 0; x < nuevoAncho; x++) {
-                nuevaMatriz[y][x] = new unsigned char[canales];
-                
-                float srcX = x / factor;
-                float srcY = y / factor;
-                int x0 = static_cast<int>(srcX);
-                int y0 = static_cast<int>(srcY);
-                int x1 = min(x0 + 1, ancho - 1);
-                int y1 = min(y0 + 1, alto - 1);
-    
-                float dx = srcX - x0;
-                float dy = srcY - y0;
-    
-                for (int c = 0; c < canales; c++) {
-                    float valor = (1 - dx) * (1 - dy) * pixeles[y0][x0][c] +
-                                  dx * (1 - dy) * pixeles[y0][x1][c] +
-                                  (1 - dx) * dy * pixeles[y1][x0][c] +
-                                  dx * dy * pixeles[y1][x1][c];
-                    nuevaMatriz[y][x][c] = static_cast<unsigned char>(valor);
-                }
-            }
-        }
-    
-        // Liberar la memoria de la imagen original
-        for (int y = 0; y < alto; y++) {
-            for (int x = 0; x < ancho; x++) {
-                delete[] pixeles[y][x];
-            }
-            delete[] pixeles[y];
-        }
-        delete[] pixeles;
-    
-        // Asignar la nueva matriz
-        pixeles = nuevaMatriz;
-        ancho = nuevoAncho;
-        alto = nuevoAlto;
-    }
-
-    // ✅ Implementación para rotar la imagen (sentido antihorario)
-    void Imagen::rotarImagen(float angulo) {
-        float radianes = angulo * M_PI / 180.0;
-        float cosA = cos(radianes);
-        float sinA = sin(radianes);
-    
-        int nuevoAncho = abs(ancho * cosA) + abs(alto * sinA);
-        int nuevoAlto = abs(ancho * sinA) + abs(alto * cosA);
-    
-        unsigned char*** nuevaMatriz = new unsigned char**[nuevoAlto];
-        for (int y = 0; y < nuevoAlto; y++) {
-            nuevaMatriz[y] = new unsigned char*[nuevoAncho];
-            for (int x = 0; x < nuevoAncho; x++) {
-                nuevaMatriz[y][x] = new unsigned char[canales];
-                for (int c = 0; c < canales; c++) {
-                    nuevaMatriz[y][x][c] = 255; // Rellenar con blanco
-                }
-            }
-        }
-    
-        int cx = ancho / 2;
-        int cy = alto / 2;
-        int ncx = nuevoAncho / 2;
-        int ncy = nuevoAlto / 2;
-    
-        for (int ny = 0; ny < nuevoAlto; ny++) {
-            for (int nx = 0; nx < nuevoAncho; nx++) {
-                float xOriginal = cosA * (nx - ncx) + sinA * (ny - ncy) + cx;
-                float yOriginal = -sinA * (nx - ncx) + cosA * (ny - ncy) + cy;
-    
-                int x0 = floor(xOriginal);
-                int y0 = floor(yOriginal);
-                int x1 = x0 + 1;
-                int y1 = y0 + 1;
-    
-                if (x0 >= 0 && x1 < ancho && y0 >= 0 && y1 < alto) {
-                    for (int c = 0; c < canales; c++) {
-                        float p00 = pixeles[y0][x0][c];
-                        float p10 = pixeles[y0][x1][c];
-                        float p01 = pixeles[y1][x0][c];
-                        float p11 = pixeles[y1][x1][c];
-    
-                        float dx = xOriginal - x0;
-                        float dy = yOriginal - y0;
-    
-                        float interpolado = (1 - dx) * (1 - dy) * p00 +
-                                            dx * (1 - dy) * p10 +
-                                            (1 - dx) * dy * p01 +
-                                            dx * dy * p11;
-    
-                        nuevaMatriz[ny][nx][c] = static_cast<unsigned char>(interpolado);
-                    }
-                }
-            }
-        }
-    
-        // Liberar memoria de la imagen original
-        for (int y = 0; y < alto; y++) {
-            for (int x = 0; x < ancho; x++) {
-                delete[] pixeles[y][x];
-            }
-            delete[] pixeles[y];
-        }
-        delete[] pixeles;
-    
-        // Asignar la nueva matriz
-        pixeles = nuevaMatriz;
-        ancho = nuevoAncho;
-        alto = nuevoAlto;
-    }
 ```
-
 ---
 
 ## Puntos claves Adicionales.
