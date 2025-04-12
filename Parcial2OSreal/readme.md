@@ -493,5 +493,10 @@ void ImageProcessor::rotateImageToBuddy(const cv::Mat& src, cv::Mat& dst, double
 | ¿Cómo afectaría el aumento de canales (por ejemplo, de RGB a RGBA) en el rendimiento y consumo de memoria?| El consumo de memoria aumentaría linealmente con el número de canales. El tiempo de procesameint ode las operaciones que iteran sobre los pixeles también aumentarían linealmente con el número de canales, debido a que se realiza la misma operación en cada canal de cada pixel.|
 
 ---
+## Video
+Link del video explicativo del proyecto: 
+https://youtu.be/3p0XQpRNwT0
+
+---
 ## Conclusión
 El Buddy System es ideal para aplicaciones de procesamiento de imágenes que requieren asignación y liberación rápida de memoria. Este código proprciona una base funcional para el procesamiento de imágenes, demonstrando la rotación y el escalamiento con la `interpolación bilineal` y la organización de datos de imagenes en una matriz tridimensional. Se buscó simplificar el pograma, pero sobre todo trabajar la practicidad de cada funcionalidad.
