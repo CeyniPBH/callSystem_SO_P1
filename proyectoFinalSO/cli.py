@@ -13,8 +13,6 @@ def main():
     backup_parser.add_argument("--sources", nargs="+", required=True, help="Carpetas de origen a respaldar.")
     backup_parser.add_argument("--output-dir", required=True, help="Directorio donde se guardará el respaldo.")
     backup_parser.add_argument("--algo", choices=['zip', 'gzip', 'bzip2'], default='zip', help="Algoritmo de compresión.")
-    backup_parser.add_argument("--encrypt", action="store_true", help="Encriptar el archivo de respaldo.")
-    # No almacenar la contraseña como argumento por seguridad, se pedirá interactivamente si --encrypt está presente.
     backup_parser.add_argument("--dest-type", choices=['hdd', 'usb_split', 'cloud'], default='hdd',
                                help="Tipo de destino de almacenamiento.")
     backup_parser.add_argument("--split-chunk-mb", type=int, help="Tamaño de fragmento en MB para 'usb_split'.")
@@ -23,9 +21,8 @@ def main():
     restore_parser = subparsers.add_parser("restore", help="Restaurar desde un respaldo.")
     restore_parser.add_argument("--source", required=True, help="Archivo de respaldo o directorio de fragmentos a restaurar.")
     restore_parser.add_argument("--restore-to", required=True, help="Directorio donde se restaurarán los archivos.")
-    # La contraseña se pedirá interactivamente si el archivo parece encriptado (termina en .enc).
     restore_parser.add_argument("--is-split", action="store_true", help="Indica si el origen es un directorio de fragmentos.")
-    restore_parser.add_argument("--original-base-filename", help="Nombre base original del archivo fragmentado (ej: backup_xxxx.zip o backup_xxxx.zip.enc). Necesario si --is-split.")
+    restore_parser.add_argument("--original-base-filename", help="Nombre base original del archivo fragmentado (ej: backup_xxxx.zip o backup_xxxx.tar.gz). Necesario si --is-split.")
 
 
     args = parser.parse_args()
@@ -61,15 +58,10 @@ def main():
     try:
         if args.command == "backup":
             password_for_backup = None
-            if args.encrypt:
-                 # Se pedirá interactivamente dentro de la función de backup
-                 pass
             system.backup(
                 source_folders=args.sources,
                 output_dir=args.output_dir,
                 compression_algo=args.algo,
-                encrypt=args.encrypt,
-                password=password_for_backup, # Pasa None, se pedirá si es necesario
                 destination_type=args.dest_type,
                 split_chunk_mb=args.split_chunk_mb
             )
@@ -79,7 +71,6 @@ def main():
             system.restore(
                 backup_source_path_or_dir=args.source,
                 restore_to_dir=args.restore_to,
-                password=password_for_restore, # Pasa None, se pedirá si es necesario
                 is_split=args.is_split,
                 original_base_filename_pattern=args.original_base_filename
             )
