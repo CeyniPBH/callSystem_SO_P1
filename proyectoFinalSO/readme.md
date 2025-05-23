@@ -46,3 +46,6 @@ python cli.py backup --sources "/ruta/a/carpeta1" "/ruta/a/carpeta2" --output-di
 ```bash
 python cli.py restore --source "/ruta/usb/backup_20250522_192654.tar.gz_parts" --restore-to "/ruta/de/restauracion" --is-split --original-base-filename "backup_20250522_192654.tar.gz"
 ```
+
+### 🎥 link del video
+https://youtu.be/fbm1s4142K4
