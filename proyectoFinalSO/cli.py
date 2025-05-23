@@ -5,7 +5,16 @@ import sys
 from backup_system import BackupSystem, logger # Import logger para que se configure
 
 def main():
-    parser = argparse.ArgumentParser(description="Sistema de Respaldo Seguro con Dask.")
+    parser = argparse.ArgumentParser(
+        description="Sistema de respaldo y restauración con compresión, encriptación y manejo de fragmentación.",
+        epilog="""
+Ejemplos de uso:
+  python cli.py backup --source-folders ./data --output-dir ./respaldo --compression zip
+  python cli.py restore --source ./respaldo/backup_20250520_101010.tar.gz --restore-to ./restaurado
+  python cli.py restore --source ./respaldo --restore-to ./restaurado --is-split --original-base-filename backup_20250520_101010.tar.gz
+""",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     subparsers = parser.add_subparsers(dest="command", required=True, help="Comando a ejecutar")
 
     # Subcomando Backup
